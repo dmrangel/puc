@@ -1,1 +1,1 @@
-# Davi files for to the discipline inf1010: estrutura de dados avançadas
+# Davi Rangel repo for all the disciplines
