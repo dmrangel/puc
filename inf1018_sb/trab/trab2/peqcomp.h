@@ -1,23 +1,14 @@
-/*
- * peqcomp.h
- * Define o protótipo da função peqcomp e o tipo funcp.
- */
+/* Davi_Rangel 2411930 3WB */
+
 #ifndef PEQCOMP_H
 #define PEQCOMP_H
 
 #include <stdio.h>
 
-/*
- * Define um ponteiro para uma função que recebe até 3 inteiros
- * e retorna um inteiro.
- */
+// Define um tipo para um ponteiro de função que recebe até 3 inteiros.
 typedef int (*funcp)(int, int, int);
 
-/*
- * Assinatura da função do micro-compilador.
- * f: arquivo fonte SBas aberto para leitura.
- * codigo: buffer onde o código de máquina será gerado.
- */
+// Protótipo da função do compilador.
 funcp peqcomp(FILE *f, unsigned char codigo[]);
 
-#endif /* PEQCOMP_H */
+#endif
