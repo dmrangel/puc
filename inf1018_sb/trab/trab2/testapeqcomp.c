@@ -2,7 +2,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/mman.h>
 #include "peqcomp.h"
 
 #define TAMANHO_CODIGO 4096
@@ -19,15 +18,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Aloca memoria executavel.
-    unsigned char *codigo_maquina = mmap(NULL, TAMANHO_CODIGO,
-                                         PROT_READ | PROT_WRITE | PROT_EXEC,
-                                         MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (codigo_maquina == MAP_FAILED) {
-        perror("Erro no mmap");
-        fclose(arquivo_sbas);
-        return 1;
-    }
+    // Aloca um buffer na pilha para o codigo de maquina.
+    // A flag --execstack na compilacao tornara esta area executavel.
+    unsigned char codigo_maquina[TAMANHO_CODIGO];
 
     // Compila o codigo SBas.
     funcp ponteiro_funcao = peq_compila(arquivo_sbas, codigo_maquina);
@@ -35,7 +28,6 @@ int main(int argc, char *argv[]) {
 
     if (!ponteiro_funcao) {
         fprintf(stderr, "Erro na compilacao\n");
-        munmap(codigo_maquina, TAMANHO_CODIGO);
         return 1;
     }
 
@@ -49,9 +41,5 @@ int main(int argc, char *argv[]) {
     // Chama a funcao gerada e imprime o resultado.
     int resultado = ponteiro_funcao(arg1, arg2, arg3);
     printf("Resultado: %d\n", resultado);
-
-    // Libera a memoria alocada.
-    munmap(codigo_maquina, TAMANHO_CODIGO);
-
     return 0;
 }
