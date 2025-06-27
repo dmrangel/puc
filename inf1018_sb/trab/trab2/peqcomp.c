@@ -7,123 +7,128 @@
 #include "peqcomp.h"
 
 #define MAX_LINHAS 30
-#define VAR_OFFSET(v) (-(4 * (v)))
+// Converte o indice da variavel sbas (1-5) pro deslocamento na pilha
+#define DESLOCAMENTO_VAR(v) (-(4 * (v)))
 
-// Estrutura para guardar informações de saltos a serem corrigidos (backpatching).
+// Estrutura pra guardar informacoes de saltos a serem corrigidos (backpatching).
 typedef struct {
-    int pos_ajuste;   // Posição no buffer de código a ser corrigida.
-    int linha_alvo; // Linha de destino do salto.
-} Patch;
+    int posicao_ajuste; // Posicao no buffer de codigo a ser corrigida.
+    int linha_alvo;     // Linha de destino do salto.
+} Ajuste;
 
-// Funções auxiliares para emitir código de máquina.
-static void emite_byte(unsigned char codigo[], int *pos, unsigned char byte) {
+// Funcoes auxiliares pra emitir codigo de maquina.
+static void emitir_byte(unsigned char codigo[], int *pos, unsigned char byte) {
     codigo[(*pos)++] = byte;
 }
 
-static void emite_int32(unsigned char codigo[], int *pos, int32_t valor) {
+static void emitir_inteiro32(unsigned char codigo[], int *pos, int32_t valor) {
     memcpy(&codigo[*pos], &valor, sizeof(int32_t));
     *pos += sizeof(int32_t);
 }
 
-// Gera o prólogo da função (configura o stack frame).
-static void gera_prologo(unsigned char codigo[], int *pos) {
-    emite_byte(codigo, pos, 0x55);                                    // push   %rbp
-    emite_byte(codigo, pos, 0x48); emite_byte(codigo, pos, 0x89); emite_byte(codigo, pos, 0xe5); // mov    %rsp, %rbp
-    emite_byte(codigo, pos, 0x48); emite_byte(codigo, pos, 0x83); emite_byte(codigo, pos, 0xec); emite_byte(codigo, pos, 0x14); // sub    $20, %rsp (5 vars * 4 bytes)
+// Funcao especifica pra escrever um valor em qualquer ponto do codigo (usada no backpatching).
+static void escrever_inteiro32_em(unsigned char codigo[], int posicao, int32_t valor) {
+    memcpy(&codigo[posicao], &valor, sizeof(int32_t));
 }
 
-// Gera o epílogo da função (limpa a pilha e retorna).
-static void gera_epilogo(unsigned char codigo[], int *pos) {
-    emite_byte(codigo, pos, 0xc9); // leave
-    emite_byte(codigo, pos, 0xc3); // ret
+// Gera o prologo da funcao (configura o stack frame).
+static void gerar_prologo(unsigned char codigo[], int *pos) {
+    emitir_byte(codigo, pos, 0x55);                                    // push   %rbp
+    emitir_byte(codigo, pos, 0x48); emitir_byte(codigo, pos, 0x89); emitir_byte(codigo, pos, 0xe5); // mov    %rsp, %rbp
+    emitir_byte(codigo, pos, 0x48); emitir_byte(codigo, pos, 0x83); emitir_byte(codigo, pos, 0xec); emitir_byte(codigo, pos, 0x14); // sub    $20, %rsp
 }
 
-funcp peqcomp(FILE *f, unsigned char codigo[]) {
-    char linhas[MAX_LINHAS][128];
-    int n_linhas = 0;
-    int pos = 0;
+// Gera o epilogo da funcao (limpa a pilha e retorna).
+static void gerar_epilogo(unsigned char codigo[], int *pos) {
+    emitir_byte(codigo, pos, 0xc9); // leave
+    emitir_byte(codigo, pos, 0xc3); // ret
+}
 
-    int end_linha[MAX_LINHAS];
-    Patch ajustes[MAX_LINHAS];
-    int cont_ajuste = 0;
+funcp peq_compila(FILE *f, unsigned char codigo_maquina[]) {
+    char linhas_fonte[MAX_LINHAS][128];
+    int num_linhas = 0;
+    int pos_codigo = 0;
 
-    // 1. Lê todas as linhas do arquivo para a memória.
-    while (n_linhas < MAX_LINHAS && fgets(linhas[n_linhas], sizeof(linhas[0]), f)) {
-        linhas[n_linhas][strcspn(linhas[n_linhas], "\n\r")] = 0;
-        if (strlen(linhas[n_linhas]) > 0) {
-            n_linhas++;
+    int endereco_linha[MAX_LINHAS];
+    Ajuste lista_ajustes[MAX_LINHAS];
+    int contador_ajustes = 0;
+
+    // 1. Le todas as linhas do arquivo pra memoria.
+    while (num_linhas < MAX_LINHAS && fgets(linhas_fonte[num_linhas], sizeof(linhas_fonte[0]), f)) {
+        linhas_fonte[num_linhas][strcspn(linhas_fonte[num_linhas], "\n\r")] = 0;
+        if (strlen(linhas_fonte[num_linhas]) > 0) {
+            num_linhas++;
         }
     }
 
-    // 2. Gera o código de máquina, linha por linha.
-    gera_prologo(codigo, &pos);
+    // 2. Gera o codigo de maquina, linha por linha.
+    gerar_prologo(codigo_maquina, &pos_codigo);
 
-    for (int i = 0; i < n_linhas; i++) {
-        end_linha[i] = pos;
-        char *linha = linhas[i];
+    for (int i = 0; i < num_linhas; i++) {
+        endereco_linha[i] = pos_codigo;
+        char *linha = linhas_fonte[i];
         int v1, v2, v3, val;
         char op;
 
-        if (sscanf(linha, "v%d : $%d", &v1, &val) == 2) { // atribuição: v_dst : $const
-            emite_byte(codigo, &pos, 0xc7); emite_byte(codigo, &pos, 0x45);
-            emite_byte(codigo, &pos, VAR_OFFSET(v1));
-            emite_int32(codigo, &pos, val);
-        } else if (sscanf(linha, "v%d : p%d", &v1, &v2) == 2) { // atribuição: v_dst : p_src
-            const unsigned char reg_map[] = {0x7d, 0x75, 0x55}; // p1:edi, p2:esi, p3:edx
-            emite_byte(codigo, &pos, 0x89);
-            emite_byte(codigo, &pos, reg_map[v2 - 1]);
-            emite_byte(codigo, &pos, VAR_OFFSET(v1));
-        } else if (sscanf(linha, "v%d : v%d", &v1, &v2) == 2) { // atribuição: v_dst : v_src
-            emite_byte(codigo, &pos, 0x8b); emite_byte(codigo, &pos, 0x45); emite_byte(codigo, &pos, VAR_OFFSET(v2)); // mov v_src, %eax
-            emite_byte(codigo, &pos, 0x89); emite_byte(codigo, &pos, 0x45); emite_byte(codigo, &pos, VAR_OFFSET(v1)); // mov %eax, v_dst
-        } else if (sscanf(linha, "v%d = v%d %c v%d", &v1, &v2, &op, &v3) == 4) { // operação: v_dst = v_src1 op v_src2
-            emite_byte(codigo, &pos, 0x8b); emite_byte(codigo, &pos, 0x45); emite_byte(codigo, &pos, VAR_OFFSET(v2)); // mov v_src1, %eax
+        if (sscanf(linha, "v%d : $%d", &v1, &val) == 2) { // atribuicao: v_dst : $const
+            emitir_byte(codigo_maquina, &pos_codigo, 0xc7); emitir_byte(codigo_maquina, &pos_codigo, 0x45);
+            emitir_byte(codigo_maquina, &pos_codigo, DESLOCAMENTO_VAR(v1));
+            emitir_inteiro32(codigo_maquina, &pos_codigo, val);
+        } else if (sscanf(linha, "v%d : p%d", &v1, &v2) == 2) { // atribuicao: v_dst : p_src
+            const unsigned char mapa_regs[] = {0x7d, 0x75, 0x55}; // p1:edi, p2:esi, p3:edx
+            emitir_byte(codigo_maquina, &pos_codigo, 0x89);
+            emitir_byte(codigo_maquina, &pos_codigo, mapa_regs[v2 - 1]);
+            emitir_byte(codigo_maquina, &pos_codigo, DESLOCAMENTO_VAR(v1));
+        } else if (sscanf(linha, "v%d : v%d", &v1, &v2) == 2) { // atribuicao: v_dst : v_src
+            emitir_byte(codigo_maquina, &pos_codigo, 0x8b); emitir_byte(codigo_maquina, &pos_codigo, 0x45); emitir_byte(codigo_maquina, &pos_codigo, DESLOCAMENTO_VAR(v2));
+            emitir_byte(codigo_maquina, &pos_codigo, 0x89); emitir_byte(codigo_maquina, &pos_codigo, 0x45); emitir_byte(codigo_maquina, &pos_codigo, DESLOCAMENTO_VAR(v1));
+        } else if (sscanf(linha, "v%d = v%d %c v%d", &v1, &v2, &op, &v3) == 4) { // operacao: v_dst = v_src1 op v_src2
+            emitir_byte(codigo_maquina, &pos_codigo, 0x8b); emitir_byte(codigo_maquina, &pos_codigo, 0x45); emitir_byte(codigo_maquina, &pos_codigo, DESLOCAMENTO_VAR(v2));
             switch (op) {
-                case '+': emite_byte(codigo, &pos, 0x03); break; // add
-                case '-': emite_byte(codigo, &pos, 0x2b); break; // sub
-                case '*': emite_byte(codigo, &pos, 0x0f); emite_byte(codigo, &pos, 0xaf); break; // imul
+                case '+': emitir_byte(codigo_maquina, &pos_codigo, 0x03); break;
+                case '-': emitir_byte(codigo_maquina, &pos_codigo, 0x2b); break;
+                case '*': emitir_byte(codigo_maquina, &pos_codigo, 0x0f); emitir_byte(codigo_maquina, &pos_codigo, 0xaf); break;
             }
-            emite_byte(codigo, &pos, 0x45); emite_byte(codigo, &pos, VAR_OFFSET(v3)); // op v_src2, %eax
-            emite_byte(codigo, &pos, 0x89); emite_byte(codigo, &pos, 0x45); emite_byte(codigo, &pos, VAR_OFFSET(v1)); // mov %eax, v_dst
-        } else if (sscanf(linha, "v%d = v%d %c $%d", &v1, &v2, &op, &val) == 4) { // operação: v_dst = v_src op $const
-            emite_byte(codigo, &pos, 0x8b); emite_byte(codigo, &pos, 0x45); emite_byte(codigo, &pos, VAR_OFFSET(v2)); // mov v_src, %eax
+            emitir_byte(codigo_maquina, &pos_codigo, 0x45); emitir_byte(codigo_maquina, &pos_codigo, DESLOCAMENTO_VAR(v3));
+            emitir_byte(codigo_maquina, &pos_codigo, 0x89); emitir_byte(codigo_maquina, &pos_codigo, 0x45); emitir_byte(codigo_maquina, &pos_codigo, DESLOCAMENTO_VAR(v1));
+        } else if (sscanf(linha, "v%d = v%d %c $%d", &v1, &v2, &op, &val) == 4) { // operacao: v_dst = v_src op $const
+            emitir_byte(codigo_maquina, &pos_codigo, 0x8b); emitir_byte(codigo_maquina, &pos_codigo, 0x45); emitir_byte(codigo_maquina, &pos_codigo, DESLOCAMENTO_VAR(v2));
             switch (op) {
-                case '+': emite_byte(codigo, &pos, 0x05); break; // add $imm32, %eax
-                case '-': emite_byte(codigo, &pos, 0x2d); break; // sub $imm32, %eax
-                case '*': emite_byte(codigo, &pos, 0x69); emite_byte(codigo, &pos, 0xc0); break; // imul $imm32, %eax, %eax
+                case '+': emitir_byte(codigo_maquina, &pos_codigo, 0x05); break;
+                case '-': emitir_byte(codigo_maquina, &pos_codigo, 0x2d); break;
+                case '*': emitir_byte(codigo_maquina, &pos_codigo, 0x69); emitir_byte(codigo_maquina, &pos_codigo, 0xc0); break;
             }
-            emite_int32(codigo, &pos, val);
-            emite_byte(codigo, &pos, 0x89); emite_byte(codigo, &pos, 0x45); emite_byte(codigo, &pos, VAR_OFFSET(v1)); // mov %eax, v_dst
+            emitir_inteiro32(codigo_maquina, &pos_codigo, val);
+            emitir_byte(codigo_maquina, &pos_codigo, 0x89); emitir_byte(codigo_maquina, &pos_codigo, 0x45); emitir_byte(codigo_maquina, &pos_codigo, DESLOCAMENTO_VAR(v1));
         } else if (sscanf(linha, "ret $%d", &val) == 1) { // retorno de constante
-            emite_byte(codigo, &pos, 0xb8); emite_int32(codigo, &pos, val); // mov $val, %eax
-            gera_epilogo(codigo, &pos);
-        } else if (sscanf(linha, "ret v%d", &v1) == 1) { // retorno de variável
-            emite_byte(codigo, &pos, 0x8b); emite_byte(codigo, &pos, 0x45); emite_byte(codigo, &pos, VAR_OFFSET(v1)); // mov v_src, %eax
-            gera_epilogo(codigo, &pos);
+            emitir_byte(codigo_maquina, &pos_codigo, 0xb8); emitir_inteiro32(codigo_maquina, &pos_codigo, val);
+            gerar_epilogo(codigo_maquina, &pos_codigo);
+        } else if (sscanf(linha, "ret v%d", &v1) == 1) { // retorno de variavel
+            emitir_byte(codigo_maquina, &pos_codigo, 0x8b); emitir_byte(codigo_maquina, &pos_codigo, 0x45); emitir_byte(codigo_maquina, &pos_codigo, DESLOCAMENTO_VAR(v1));
+            gerar_epilogo(codigo_maquina, &pos_codigo);
         } else if (sscanf(linha, "iflez v%d %d", &v1, &v2) == 2) { // desvio condicional
-            emite_byte(codigo, &pos, 0x83); emite_byte(codigo, &pos, 0x7d); emite_byte(codigo, &pos, VAR_OFFSET(v1)); emite_byte(codigo, &pos, 0x00); // cmpl $0, v_src
-            emite_byte(codigo, &pos, 0x0f); emite_byte(codigo, &pos, 0x8e); // jle <offset32>
-            ajustes[cont_ajuste].pos_ajuste = pos;
-            ajustes[cont_ajuste].linha_alvo = v2;
-            cont_ajuste++;
-            emite_int32(codigo, &pos, 0); // Salto temporário com offset 0
+            emitir_byte(codigo_maquina, &pos_codigo, 0x83); emitir_byte(codigo_maquina, &pos_codigo, 0x7d); emitir_byte(codigo_maquina, &pos_codigo, DESLOCAMENTO_VAR(v1)); emitir_byte(codigo_maquina, &pos_codigo, 0x00);
+            emitir_byte(codigo_maquina, &pos_codigo, 0x0f); emitir_byte(codigo_maquina, &pos_codigo, 0x8e);
+            lista_ajustes[contador_ajustes].posicao_ajuste = pos_codigo;
+            lista_ajustes[contador_ajustes].linha_alvo = v2;
+            contador_ajustes++;
+            emitir_inteiro32(codigo_maquina, &pos_codigo, 0); // Salto temporario com offset 0
         }
     }
     
-    // Garante que a função termina com um epílogo, caso a última instrução não seja 'ret'.
-    if (pos > 0 && codigo[pos - 1] != 0xc3) {
-        gera_epilogo(codigo, &pos);
+    // Garante que a funcao termina com um epilogo, caso a ultima instrucao nao seja 'ret'.
+    if (pos_codigo > 0 && codigo_maquina[pos_codigo - 1] != 0xc3) {
+        gerar_epilogo(codigo_maquina, &pos_codigo);
     }
 
-    // 3. Corrige todos os saltos pendentes.
-    for (int i = 0; i < cont_ajuste; i++) {
-        int pos_ajuste = ajustes[i].pos_ajuste;
-        int end_destino = end_linha[ajustes[i].linha_alvo - 1];
-        int32_t offset = end_destino - (pos_ajuste + 4); // Offset é relativo ao fim da instrução de salto.
+    // 3. Corrige todos os saltos pendentes (backpatching).
+    for (int i = 0; i < contador_ajustes; i++) {
+        int pos_a_ajustar = lista_ajustes[i].posicao_ajuste;
+        int endereco_de_destino = endereco_linha[lista_ajustes[i].linha_alvo - 1];
+        int32_t deslocamento = endereco_de_destino - (pos_a_ajustar + 4); // Offset e relativo ao fim da instrucao de salto.
         
-        int pos_original = pos_ajuste; // Salva a posição para não alterá-la
-        emite_int32(codigo, &pos_original, offset);
+        escrever_inteiro32_em(codigo_maquina, pos_a_ajustar, deslocamento);
     }
 
-    return (funcp)codigo;
+    return (funcp)codigo_maquina;
 }

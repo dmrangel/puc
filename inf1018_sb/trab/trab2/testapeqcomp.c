@@ -5,7 +5,7 @@
 #include <sys/mman.h>
 #include "peqcomp.h"
 
-#define TAM_CODIGO 4096
+#define TAMANHO_CODIGO 4096
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
@@ -13,45 +13,45 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    FILE *f = fopen(argv[1], "r");
-    if (!f) {
-        perror("Erro ao abrir arquivo");
+    FILE *arquivo_sbas = fopen(argv[1], "r");
+    if (!arquivo_sbas) {
+        perror("Erro ao abrir o arquivo");
         return 1;
     }
 
-    // Aloca memória executável.
-    unsigned char *codigo = mmap(NULL, TAM_CODIGO,
-                                 PROT_READ | PROT_WRITE | PROT_EXEC,
-                                 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (codigo == MAP_FAILED) {
-        perror("Erro de mmap");
-        fclose(f);
+    // Aloca memoria executavel.
+    unsigned char *codigo_maquina = mmap(NULL, TAMANHO_CODIGO,
+                                         PROT_READ | PROT_WRITE | PROT_EXEC,
+                                         MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (codigo_maquina == MAP_FAILED) {
+        perror("Erro no mmap");
+        fclose(arquivo_sbas);
         return 1;
     }
 
-    // Compila o código SBas.
-    funcp fptr = peqcomp(f, codigo);
-    fclose(f);
+    // Compila o codigo SBas.
+    funcp ponteiro_funcao = peq_compila(arquivo_sbas, codigo_maquina);
+    fclose(arquivo_sbas);
 
-    if (!fptr) {
-        fprintf(stderr, "Erro de compilação\n");
-        munmap(codigo, TAM_CODIGO);
+    if (!ponteiro_funcao) {
+        fprintf(stderr, "Erro na compilacao\n");
+        munmap(codigo_maquina, TAMANHO_CODIGO);
         return 1;
     }
 
-    // Prepara os argumentos para a função compilada.
+    // Prepara os argumentos para a funcao compilada.
     int arg1 = (argc > 2) ? atoi(argv[2]) : 0;
     int arg2 = (argc > 3) ? atoi(argv[3]) : 0;
     int arg3 = (argc > 4) ? atoi(argv[4]) : 0;
 
-    printf("Função: '%s' | Args: (%d, %d, %d)\n", argv[1], arg1, arg2, arg3);
+    printf("Executando '%s' com args (%d, %d, %d)\n", argv[1], arg1, arg2, arg3);
 
-    // Chama a função gerada e imprime o resultado.
-    int resultado = fptr(arg1, arg2, arg3);
+    // Chama a funcao gerada e imprime o resultado.
+    int resultado = ponteiro_funcao(arg1, arg2, arg3);
     printf("Resultado: %d\n", resultado);
 
-    // Libera a memória alocada.
-    munmap(codigo, TAM_CODIGO);
+    // Libera a memoria alocada.
+    munmap(codigo_maquina, TAMANHO_CODIGO);
 
     return 0;
 }
