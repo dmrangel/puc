@@ -11,11 +11,11 @@ Atribuicoes: O compilador suporta todas as formas de atribuicao:
 
 Operacoes Aritmeticas: As tres operacoes aritmeticas (+, -, *) funcionam corretamente com variaveis e constantes
 
-Desvio Condicional 'iflez': A instrucao de desvio foi implementada com sucesso usando a tecnica de backpatching. Ela suporta a criacao de estruturas condicionais (if/else) e lacos (loops), tanto com saltos para frente quanto para tras no codigo.
+Desvio Condicional iflez: A instrucao de desvio foi implementada com sucesso. Ela suporta a criacao de estruturas como (if/else) e loops.
 
-Retorno 'ret': A instrucao de retorno funciona com valores constantes ou com valores armazenados em variaveis. O programa gerado retorna o valor corretamente para o sistema operacional.
+Retorno ret: A instrucao de retorno funciona com valores constantes ou com valores armazenados em variaveis. O programa gerado retorna o valor corretamente para o sistema operacional.
 
-Exemplos de Teste Utilizados
+Exemplos de teste utilizados:
 
 fatorial.sbas:
     v1 : p1      
