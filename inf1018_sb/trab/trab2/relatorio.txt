@@ -1,1 +1,73 @@
 Davi_Rangel 2411930 3WB
+
+Todas as funcionalidades requisitadas no enunciado do trabalho foram implementadas e estao funcionando corretamente. O compilador peqcomp é capaz de traduzir corretamente funcoes escritas em sbas para codigo de maquina x86-64 executavel.
+
+Funcionalidades implementadas e validadas:
+
+Atribuicoes: O compilador suporta todas as formas de atribuicao:
+    Variavel recebendo constante (ex: v1 : $10)
+    Variavel recebendo parametro (ex: v1 : p1)
+    Variavel recebendo outra variavel (ex: v2 : v1)
+
+Operacoes Aritmeticas: As tres operacoes aritmeticas (+, -, *) funcionam corretamente com variaveis e constantes
+
+Desvio Condicional 'iflez': A instrucao de desvio foi implementada com sucesso usando a tecnica de backpatching. Ela suporta a criacao de estruturas condicionais (if/else) e lacos (loops), tanto com saltos para frente quanto para tras no codigo.
+
+Retorno 'ret': A instrucao de retorno funciona com valores constantes ou com valores armazenados em variaveis. O programa gerado retorna o valor corretamente para o sistema operacional.
+
+Exemplos de Teste Utilizados
+
+fatorial.sbas:
+    v1 : p1      
+    v2 : $1      
+    v3 : $0      
+    iflez v1 8   
+    v2 = v2 * v1 
+    v1 = v1 - $1 
+    iflez v3 4   
+    ret v2
+
+Exemplo de Execucao:
+    Comando: ./testapeqcomp fatorial.sbas 5
+    Saida:   Executando 'fatorial.sbas' com args (5, 0, 0)
+    Resultado: 120
+
+mult.sbas:
+    v1 : p1
+    v2 : p2
+    v3 = v1 + v2
+    v4 = v1 - v2
+    v1 = v3 * v4
+    ret v1
+
+Exemplo de Execucao:
+    Comando: ./testapeqcomp mult.sbas 10 4
+    Saida:   Executando 'mult.sbas' com args (10, 4, 0)
+    Resultado: 84
+
+pos_negativ.sbas:
+    v1 : p1
+    v1 = v1 + $1
+    iflez v1 5
+    ret $0
+    ret $1
+
+Exemplo de Execucao 1 (Entrada negativa):
+    Comando: ./testapeqcomp pos_negativ.sbas -5
+    Saida:   Executando 'pos_negativ.sbas' com args (-5, 0, 0)
+    Resultado: 1
+
+Exemplo de Execucao 2 (Entrada positiva):
+    Comando: ./testapeqcomp pos_negativ.sbas 5
+    Saida:   Executando 'pos_negativ.sbas' com args (5, 0, 0)
+    Resultado: 0
+
+soma1.sbas:
+    v1 : p1
+    v1 = v1 + $1
+    ret v1
+
+Exemplo de Execucao:
+    Comando: ./testapeqcomp soma1.sbas 41
+    Saida:   Executando 'soma1.sbas' com args (41, 0, 0)
+    Resultado: 42

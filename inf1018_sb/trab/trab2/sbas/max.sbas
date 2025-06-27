@@ -1,0 +1,8 @@
+v1 : p1
+v2 : p2
+v3 = v1 - v2
+v4 : $0
+v4 = v4 - v3
+iflez v4 8
+ret v1
+ret v2

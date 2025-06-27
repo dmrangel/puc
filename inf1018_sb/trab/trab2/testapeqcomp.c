@@ -8,30 +8,30 @@
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        fprintf(stderr, "Erro: faltou o arquivo sbas\n");
+        fprintf(stderr, "Uso: %s <arquivo.sbas> [arg1] [arg2] [arg3]\n", argv[0]);
         return 1;
     }
 
-    FILE *arquivo_sbas = fopen(argv[1], "r");
-    if (!arquivo_sbas) {
+    FILE *arquivo = fopen(argv[1], "r");
+    if (!arquivo) {
         perror("Erro ao abrir o arquivo");
         return 1;
     }
 
-    // Aloca um buffer na pilha para o codigo de maquina
-    unsigned char codigo_maquina[TAMANHO_CODIGO];
+    // Aloca buffer na pilha
+    unsigned char codigo[TAMANHO_CODIGO];
 
-    // Compila o codigo sbas
-    funcp ponteiro_funcao = peq_compila(arquivo_sbas, codigo_maquina);
-    fclose(arquivo_sbas);
+    // Compila o codigo
+    funcp funcao_compilada = peqcomp(arquivo, codigo);
+    fclose(arquivo);
 
-    if (!ponteiro_funcao) {
+    if (!funcao_compilada) {
         fprintf(stderr, "Erro na compilacao\n");
         return 1;
     }
 
-    // Prepara os argumentos para a funcao compilada
-    int args[3] = {0, 0, 0}; // Default 0
+    // Prepara os argumentos
+    int args[3] = {0, 0, 0};
     for (int i = 0; i < 3; i++) {
         if ((i + 2) < argc) {
             args[i] = atoi(argv[i + 2]);
@@ -40,12 +40,10 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    printf("Executando %s com args %d, %d, %d\n", argv[1], args[0], args[1], args[2]);
-
-    // Chama a funcao gerada e imprime o resultado
-    int resultado = ponteiro_funcao(args[0], args[1], args[2]);
+    // Chama a funcao e imprime
+    printf("Executando '%s' com args (%d, %d, %d)\n", argv[1], args[0], args[1], args[2]);
+    int resultado = funcao_compilada(args[0], args[1], args[2]);
     printf("Resultado: %d\n", resultado);
 
-    // Nao e necessario liberar memoria, pois ela esta na pilha
     return 0;
 }

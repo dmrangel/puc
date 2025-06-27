@@ -1,0 +1,16 @@
+v1 : p1
+v2 : $0
+v3 : $1
+v4 : $0
+v5 : $0
+iflez v1 12
+v1 = v1 - $1
+iflez v1 13
+v4 = v2 + v3
+v2 : v3
+v3 : v4
+v1 = v1 - $1
+iflez v1 13
+iflez v5 9
+ret v2
+ret v3

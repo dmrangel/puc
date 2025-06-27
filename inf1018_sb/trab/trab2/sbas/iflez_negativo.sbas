@@ -1,0 +1,4 @@
+v1 : $-5
+iflez v1 4
+ret $10
+ret $20

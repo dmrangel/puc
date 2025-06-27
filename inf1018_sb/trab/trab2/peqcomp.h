@@ -5,10 +5,10 @@
 
 #include <stdio.h>
 
-// Define um tipo pra um ponteiro de funcao que recebe ate 3 inteiros.
+// Define o tipo de ponteiro de funcao
 typedef int (*funcp)(int, int, int);
 
-// Prototipo da funcao do compilador.
-funcp peq_compila(FILE *f, unsigned char codigo_maquina[]);
+// Prototipo do compilador
+funcp peqcomp(FILE *f, unsigned char codigo[]);
 
 #endif
