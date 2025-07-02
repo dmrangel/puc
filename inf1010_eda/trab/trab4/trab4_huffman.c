@@ -166,8 +166,14 @@ void compactar(const char* arq_entrada, const char* arq_saida) {
     int bit_count = 0;
     escrever_arvore(raiz, saida, &byte_buffer, &bit_count);
     flush_bits(saida, &byte_buffer, &bit_count);
-
-    rewind(entrada);
+    bit_count = 0;
+    byte_buffer = 0;
+    fclose(entrada);
+    entrada = fopen(arq_entrada, "r");
+    if (!entrada) {
+        perror("Erro ao reabrir arquivo");
+        return;
+    }
     while ((c = fgetc(entrada)) != EOF) {
         char* codigo = codigos[(unsigned char)c];
         for (int i = 0; codigo[i] != '\0'; i++) {
@@ -175,8 +181,6 @@ void compactar(const char* arq_entrada, const char* arq_saida) {
         }
     }
     flush_bits(saida, &byte_buffer, &bit_count);
-
-    printf("\nArquivo '%s' otimizado e salvo.\n", arq_saida);
 
     // Libera memoria
     fclose(entrada);
@@ -212,6 +216,7 @@ void descompactar(const char* arq_entrada, const char* arq_saida) {
         return;
     }
     printf("Arvore reconstruida com sucesso\n");
+    bit_count = 0;
 
     // Decodifica o arquivo binario
     FILE* saida = fopen(arq_saida, "w");
