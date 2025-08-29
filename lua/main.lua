@@ -25,7 +25,7 @@ for i = 1, #tabela do
 end
 
 -- Exerc 2
-print("\nExerc 2\n")
+print("\nExerc 2")
 
 file = io.open("TESTE_LUA.txt", "r") if not file then print("Erro ao abrir o arquivo") end
 
@@ -55,11 +55,12 @@ for n = 1, #column_list do
   column = column_list[n]
   print("\nColuna: "..column)
   if column ~= "DATA" then
-     print("Unidade: "..table[column_list[n]].unidade)
+     print("Unidade: "..table[column_list[n]].unidade.."\n")
   end
   for i = 1, #table[column] do
-    print(table[column][i])
+    io.write(table[column][i].." | ")
   end
+  print("\n")
 end
 
 file:close()
