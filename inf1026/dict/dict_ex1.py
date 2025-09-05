@@ -21,7 +21,7 @@ def cria_dict_inverso(dic):
     return inv_dic
 
 def att_dic_inv_dic_with_list(dic, inv_dic, lista):
-    novodic, inv_novodic = dic, inv_dic
+    novodic, inv_novodic = dic.copy(), inv_dic.copy()
     for matricula in novodic:
         if matricula in lista:
             novodic[matricula] = None
@@ -32,11 +32,13 @@ def att_dic_inv_dic_with_list(dic, inv_dic, lista):
     return novodic, inv_novodic
 
 def att_dic_inv_dic_with_dict(dic, inv_dic, ndic):
-    novodic, inv_novodic = dic, inv_dic
+    novodic, inv_novodic = dic.copy(), inv_dic.copy()
     for matricula in novodic:
-        for d in novodic[matricula]:
-            if d in ndic[matricula]:
-                novodic[matricula].remove[d]
+        if novodic[matricula]:
+            for d in novodic[matricula]:
+                if matricula in ndic:
+                    if d in ndic[matricula]:
+                        novodic[matricula].remove[d]
     for d in inv_novodic:
         for matricula in ndic:
             if matricula in inv_novodic[d]:
@@ -70,7 +72,7 @@ novodic, inv_novodic = att_dic_inv_dic_with_list(dic, inv_dic, ltrancaram)
 for matricula in novodic:
     print(f"Matrícula: {matricula} | Disciplinas: {novodic[matricula]}\n")
 print("DICIONÁRIO INVERSO")
-for d in novodic:
+for d in inv_novodic:
     print(f"Disciplina: {d} | Matrículas: {inv_novodic[d]}\n")
 
 print("==========================================================\n")
