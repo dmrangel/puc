@@ -56,15 +56,13 @@ struct X6 {
   short s2;
 } x6;
 
-// 6 bytes - i/c[0],i/c[1],i/c[2],i/c[3],c[4],pp
-// POR QUE PP??
+// 8 bytes - i/c[0],i/c[1],i/c[2],i/c[3],c[4],pp,pp,pp
 union U1 {
   int i;
   char c[5];
 } u1;
 
 // 6 bytes - s/c[0],s/c[1],c[2],c[3],c[4],pp
-// PP nesse caso faz sentido, pois short pesa 2 bytes
 union U2 {
   short s;
   char c[5];
@@ -87,7 +85,7 @@ int main (void) {
 //   printf ("a: \n");
 //   dump (a, sizeof(a));
 //   printf ("x: \n");
-  dump (&u2, sizeof(u2));
+  dump (&u1, sizeof(u1));
 
   return 0;
 }
