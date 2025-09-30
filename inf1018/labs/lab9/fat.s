@@ -23,13 +23,13 @@ fat:
     subq $8, %rsp
     movl %r12d, -8(%rbp)
 
-    cmpl $0, %edi
+    cmpl $0, %edi # if edi == 0 return 1
     je end
 
-    movl %edi, %r12d
-    subl $1, %edi
-    call fat
-    imull %r12d, %eax
+    movl %edi, %r12d /* r12d = edi */
+    subl $1, %edi /* edi = edi - 1 */
+    call fat /* fat(edi) */
+    imull %r12d, %eax /* eax = eax * r12d */
 
     movl -8(%rbp), %r12d
     leave
