@@ -1,0 +1,25 @@
+Aluno 1: Davi_Rangel 2411930 3WB
+Aluno 2: Nome_do_Aluno2 Matricula Turma
+
+Estratégia de testes e roteiro:
+
+1 - Pensei em definir o menor número de variáveis possível para testar cada função, e então chamar cada uma para modificar o objeto do tipo BigInt.
+2 - Utilizar uma função exibe_bigint para exibir o valor inicial da variável long  val e o valor final da variável do tipo BigInt res.
+3 - 
+
+O que funciona ou não funciona:
+    big_val:
+        Funcionando perfeitamente.
+
+    big_comp2:
+
+    big_sub:
+
+    big_mul:
+
+    big_shl:
+
+    big_shr:
+
+    big_sar:
+    
