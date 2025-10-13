@@ -1,26 +1,17 @@
 #include <stdio.h>
-#define MAX 10 /* MAX tem que ser maior que 1!!!! */
+#define N 10
 
-struct X {
-  int val;
-  struct X *next;
-};
+void map2 (int *um, int *outro, int n);
 
-int add (struct X *x);
+int f (int x) { return x+2; }
 
 int main (void) {
-
-  struct X x[MAX];
   int i;
-
-  for (i=0;i<MAX;i++)
-    x[i].val = i;
-
-  for (i=MAX-1;i>1;i--)
-    x[i].next = &(x[i-1]);
-  x[0].next = &(x[MAX-1]);
-  x[1].next = NULL;
-
-  printf ("resultado de add: %d\n", add(x));
-  return 0;
+  int a[N], b[N];
+  for (i=0;i<N;i++)
+    a[i] = i;
+  map2(a,b,N);
+  for (i=0;i<N;i++)
+    printf("%d\n",b[i]);
+  return 1;
 }

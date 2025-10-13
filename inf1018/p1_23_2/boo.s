@@ -17,9 +17,6 @@ int boo(struct S *s, int n){
 
 acum -> r12d
 */
-
-.data
-
 .text
 .globl boo
 
@@ -32,7 +29,6 @@ movq %r13, -16(%rbp)
 movq %r14, -24(%rbp)
 
 movl $0, %r12d # int acum = 0
-movq $norma, %r13
 
 while:
 cmpq $0, %rdi
